@@ -6,6 +6,7 @@
  */
 
 #include "ICPOdometry.h"
+#include <sophus/se3.hpp>
 
 ICPOdometry::ICPOdometry(int width, int height, float cx, float cy, float fx,
                          float fy, float distThresh, float angleThresh)
@@ -76,7 +77,7 @@ void ICPOdometry::initICPModel(unsigned short *depth, const float depthCutoff) {
   cudaDeviceSynchronize();
 }
 
-void ICPOdometry::getIncrementalTransformation(Sophus::SE3d &T_prev_curr,
+void ICPOdometry::getIncrementalTransformation(Eigen::Isometry3d &T_prev_curr,
                                                int threads, int blocks) {
   iterations[0] = 10;
   iterations[1] = 5;
@@ -88,7 +89,7 @@ void ICPOdometry::getIncrementalTransformation(Sophus::SE3d &T_prev_curr,
       Eigen::Matrix<float, 6, 6, Eigen::RowMajor> A_icp;
       Eigen::Matrix<float, 6, 1> b_icp;
 
-      estimateStep(T_prev_curr.rotationMatrix().cast<float>().eval(),
+      estimateStep(T_prev_curr.rotation().cast<float>().eval(),
                    T_prev_curr.translation().cast<float>().eval(),
                    vmaps_curr[i], nmaps_curr[i], intr(i), vmaps_prev[i],
                    nmaps_prev[i], dist_thresh, angle_thresh, sumData, outData,
@@ -101,7 +102,7 @@ void ICPOdometry::getIncrementalTransformation(Sophus::SE3d &T_prev_curr,
       const Eigen::Matrix<double, 6, 1> update =
           A_icp.cast<double>().ldlt().solve(b_icp.cast<double>());
 
-      T_prev_curr = Sophus::SE3d::exp(update) * T_prev_curr;
+      T_prev_curr = (Sophus::SE3d::exp(update) * Sophus::SE3d(T_prev_curr.matrix())).matrix();
     }
   }
 }

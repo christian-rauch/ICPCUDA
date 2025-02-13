@@ -10,7 +10,6 @@
 
 #include "Cuda/internal.h"
 
-#include <sophus/se3.hpp>
 #include <vector>
 
 #include <Eigen/Core>
@@ -29,7 +28,7 @@ public:
 
   void initICPModel(unsigned short *depth, const float depthCutoff = 20.0f);
 
-  void getIncrementalTransformation(Sophus::SE3d &T_prev_curr, int threads,
+  void getIncrementalTransformation(Eigen::Isometry3d &T_prev_curr, int threads,
                                     int blocks);
 
   float lastError;
