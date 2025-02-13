@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(ICP LANGUAGES CXX)
+project(icpcuda LANGUAGES CXX)
 
 find_package(CUDAToolkit REQUIRED)
 
@@ -11,29 +11,26 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(Sophus REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED COMPONENTS core imgcodecs)
 
-include_directories(${Sophus_INCLUDE_DIR})
-
-file(GLOB srcs *.cpp *.cu *.h *.cuh)
-file(GLOB cuda Cuda/*.cu Cuda/*.cpp Cuda/*.cuh Cuda/*.h)
-file(GLOB containers Cuda/containers/*.cpp Cuda/containers/*.h Cuda/containers/*.cu Cuda/containers/*.cuh)
-
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}  "-Xcompiler;-fPIC;--expt-relaxed-constexpr")
-
-add_library(cuda_objs ${cuda})
-target_link_libraries(cuda_objs CUDA::cudart Eigen3::Eigen)
-
 set(CMAKE_CXX_FLAGS "-O3 -msse2 -msse3 -Wall")
 
-add_executable(ICP
-               ${srcs}
-               ${containers}
+add_library(icpcuda SHARED
+    ICPOdometry.cpp
+    Cuda/estimate.cu
+    Cuda/pyrdown.cu
+    Cuda/containers/device_memory.cpp
+    Cuda/containers/initialization.cpp
+)
+target_link_libraries(icpcuda
+    PUBLIC
+        CUDA::cudart Eigen3::Eigen
+    PRIVATE
+        Sophus::Sophus
+)
+target_include_directories(icpcuda PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-target_link_libraries(ICP
-                      Eigen3::Eigen
-                      cuda_objs
-                      opencv_core
-                      opencv_imgcodecs
-                      Sophus::Sophus
-)
-
+add_executable(ICP ICP.cpp)
+target_link_libraries(ICP icpcuda opencv_core opencv_imgcodecs)

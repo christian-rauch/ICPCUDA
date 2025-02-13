@@ -35,7 +35,7 @@
  */
 
 #include "initialization.hpp"
-#include "cuda.h"
+#include <cuda.h>
 #include "safe_call.hpp"
 #include <cassert>
 #include <iostream>
