@@ -31,6 +31,16 @@ target_include_directories(icpcuda PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
+install(TARGETS icpcuda
+    EXPORT icpcudaTargets
+)
 
 add_executable(ICP ICP.cpp)
 target_link_libraries(ICP icpcuda opencv_core opencv_imgcodecs)
+install(TARGETS ICP)
+
+install(EXPORT icpcudaTargets
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION share/${PROJECT_NAME}/cmake
+    FILE ${PROJECT_NAME}Config.cmake
+)
