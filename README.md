@@ -1,7 +1,7 @@
 # ICPCUDA
 Super fast implementation of ICP in CUDA for compute capable devices 3.5 or higher. On an NVIDIA GeForce GTX TITAN X it runs at over __750Hz__ (using projective data assocation). Last tested with Ubuntu 18.04.2, CUDA 10.1 and NVIDIA drivers 418.39.
 
-Requires CUDA, includes [Pangolin](https://github.com/stevenlovegrove/Pangolin), [Eigen](https://eigen.tuxfamily.org) and [Sophus](https://github.com/stevenlovegrove/Sophus) third party submodules. I've built it to take in raw TUM RGB-D datasets to do frame-to-frame dense ICP as an example application.
+Requires CUDA, [Eigen](https://eigen.tuxfamily.org) and [Sophus](https://github.com/stevenlovegrove/Sophus) third party submodules. I've built it to take in raw TUM RGB-D datasets to do frame-to-frame dense ICP as an example application.
 
 Install;
 
@@ -10,12 +10,6 @@ sudo apt-get install build-essential cmake libglew-dev libpng-dev
 git clone https://github.com/mp3guy/ICPCUDA.git
 cd ICPCUDA
 git submodule update --init
-cd third-party/Pangolin/
-mkdir build
-cd build/
-cmake ../ -DEIGEN_INCLUDE_DIR=<absolute_path_to_Eigen_submodule>
-make -j12
-cd ../../../
 mkdir build
 cd build/
 cmake ..
