@@ -3,7 +3,8 @@
 #include <chrono>
 #include <fstream>
 #include <iomanip>
-#include <pangolin/image/image_io.h>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 std::ifstream asFile;
 std::string directory;
@@ -22,7 +23,7 @@ void tokenize(const std::string &str, std::vector<std::string> &tokens,
   }
 }
 
-uint64_t loadDepth(pangolin::Image<unsigned short> &depth) {
+uint64_t loadDepth(cv::Mat_<uint16_t> &depth) {
   std::string currentLine;
   std::vector<std::string> tokens;
   std::vector<std::string> timeTokens;
@@ -38,12 +39,7 @@ uint64_t loadDepth(pangolin::Image<unsigned short> &depth) {
   std::string depthLoc = directory;
   depthLoc.append(tokens[1]);
 
-  pangolin::TypedImage depthRaw =
-      pangolin::LoadImage(depthLoc, pangolin::ImageFileTypePng);
-
-  pangolin::Image<unsigned short> depthRaw16(
-      (unsigned short *)depthRaw.ptr, depthRaw.w, depthRaw.h,
-      depthRaw.w * sizeof(unsigned short));
+  depth = cv::imread(depthLoc, cv::IMREAD_UNCHANGED)/5;
 
   tokenize(tokens[0], timeTokens, ".");
 
@@ -52,14 +48,6 @@ uint64_t loadDepth(pangolin::Image<unsigned short> &depth) {
 
   uint64_t time;
   std::istringstream(timeString) >> time;
-
-  for (unsigned int i = 0; i < 480; i++) {
-    for (unsigned int j = 0; j < 640; j++) {
-      depth.RowPtr(i)[j] = depthRaw16(j, i) / 5;
-    }
-  }
-
-  depthRaw.Dealloc();
 
   return time;
 }
@@ -108,15 +96,11 @@ int main(int argc, char *argv[]) {
 
   asFile.open(associationFile.c_str());
 
-  pangolin::ManagedImage<unsigned short> firstData(640, 480);
-  pangolin::ManagedImage<unsigned short> secondData(640, 480);
+  constexpr uint w = 640;
+  constexpr uint h = 480;
 
-  pangolin::Image<unsigned short> firstRaw(firstData.w, firstData.h,
-                                           firstData.pitch,
-                                           (unsigned short *)firstData.ptr);
-  pangolin::Image<unsigned short> secondRaw(secondData.w, secondData.h,
-                                            secondData.pitch,
-                                            (unsigned short *)secondData.ptr);
+  cv::Mat_<uint16_t> firstRaw(w, h, uint16_t(0));
+  cv::Mat_<uint16_t> secondRaw(w, h, uint16_t(0));
 
   ICPOdometry icpOdom(640, 480, 319.5, 239.5, 528, 528);
 
@@ -169,8 +153,8 @@ int main(int argc, char *argv[]) {
           count = 0;
 
           for (int i = 0; i < 5; i++) {
-            icpOdom.initICPModel(firstRaw.ptr);
-            icpOdom.initICP(secondRaw.ptr);
+            icpOdom.initICPModel(reinterpret_cast<uint16_t*>(firstRaw.data));
+            icpOdom.initICP(reinterpret_cast<uint16_t*>(secondRaw.data));
 
             uint64_t tick = getCurrTime();
 
@@ -218,8 +202,8 @@ int main(int argc, char *argv[]) {
   T_wc_curr = Sophus::SE3d();
 
   while (!asFile.eof()) {
-    icpOdom.initICPModel(firstRaw.ptr);
-    icpOdom.initICP(secondRaw.ptr);
+    icpOdom.initICPModel(reinterpret_cast<uint16_t*>(firstRaw.data));
+    icpOdom.initICP(reinterpret_cast<uint16_t*>(secondRaw.data));
 
     uint64_t tick = getCurrTime();
 

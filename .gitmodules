@@ -1,6 +1,3 @@
 [submodule "third-party/Sophus"]
 	path = third-party/Sophus
 	url = https://github.com/strasdat/Sophus.git
-[submodule "third-party/Pangolin"]
-	path = third-party/Pangolin
-	url = https://github.com/stevenlovegrove/Pangolin.git

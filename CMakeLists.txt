@@ -7,13 +7,11 @@ find_package(CUDAToolkit REQUIRED)
 set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
 enable_language(CUDA)
 
-set(Pangolin_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third-party/Pangolin/build/src" CACHE PATH "Pangolin build directory")
 set(Sophus_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third-party/Sophus" CACHE PATH "Sophus Include directory")
 
 find_package(Eigen3 REQUIRED NO_MODULE)
-find_package(Pangolin REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgcodecs)
 
-include_directories(${Pangolin_INCLUDE_DIRS})
 include_directories(${Sophus_INCLUDE_DIR})
 
 file(GLOB srcs *.cpp *.cu *.h *.cuh)
@@ -33,8 +31,9 @@ add_executable(ICP
 )
 
 target_link_libraries(ICP
-                      ${Pangolin_LIBRARIES}
                       Eigen3::Eigen
                       cuda_objs
+                      opencv_core
+                      opencv_imgcodecs
 )
 
