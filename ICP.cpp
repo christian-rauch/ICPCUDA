@@ -110,8 +110,8 @@ int main(int argc, char *argv[]) {
   loadDepth(firstRaw);
   uint64_t timestamp = loadDepth(secondRaw);
 
-  Sophus::SE3d T_wc_prev;
-  Sophus::SE3d T_wc_curr;
+  Eigen::Isometry3d T_wc_prev;
+  Eigen::Isometry3d T_wc_curr;
 
   std::ofstream file;
   file.open("output.poses", std::fstream::out);
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
 
             T_wc_prev = T_wc_curr;
 
-            Sophus::SE3d T_prev_curr = T_wc_prev.inverse() * T_wc_curr;
+            Eigen::Isometry3d T_prev_curr = T_wc_prev.inverse() * T_wc_curr;
 
             icpOdom.getIncrementalTransformation(T_prev_curr, threads, blocks);
 
@@ -199,8 +199,8 @@ int main(int argc, char *argv[]) {
   mean = 0.0f;
   count = 0;
 
-  T_wc_prev = Sophus::SE3d();
-  T_wc_curr = Sophus::SE3d();
+  T_wc_prev.setIdentity();
+  T_wc_curr.setIdentity();
 
   while (!asFile.eof()) {
     icpOdom.initICPModel(reinterpret_cast<uint16_t*>(firstRaw.data));
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
 
     T_wc_prev = T_wc_curr;
 
-    Sophus::SE3d T_prev_curr = T_wc_prev.inverse() * T_wc_curr;
+    Eigen::Isometry3d T_prev_curr = T_wc_prev.inverse() * T_wc_curr;
 
     icpOdom.getIncrementalTransformation(T_prev_curr, threads, blocks);
 
