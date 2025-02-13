@@ -27,6 +27,7 @@ target_link_libraries(icpcuda
     PRIVATE
         Sophus::Sophus
 )
+set_target_properties(icpcuda PROPERTIES PUBLIC_HEADER ICPOdometry.h)
 target_include_directories(icpcuda PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
