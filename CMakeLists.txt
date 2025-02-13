@@ -7,9 +7,8 @@ find_package(CUDAToolkit REQUIRED)
 set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
 enable_language(CUDA)
 
-set(Sophus_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third-party/Sophus" CACHE PATH "Sophus Include directory")
-
 find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(Sophus REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED COMPONENTS core imgcodecs)
 
 include_directories(${Sophus_INCLUDE_DIR})
@@ -35,5 +34,6 @@ target_link_libraries(ICP
                       cuda_objs
                       opencv_core
                       opencv_imgcodecs
+                      Sophus::Sophus
 )
 
