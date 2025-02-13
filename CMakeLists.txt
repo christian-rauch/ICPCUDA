@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.23)
 
 project(icpcuda LANGUAGES CXX)
 
@@ -21,6 +21,25 @@ add_library(icpcuda SHARED
     Cuda/containers/device_memory.cpp
     Cuda/containers/initialization.cpp
 )
+target_sources(icpcuda
+    PUBLIC
+        FILE_SET public_headers
+        TYPE HEADERS
+        FILES
+            ICPOdometry.h
+            Cuda/internal.h
+            Cuda/containers/device_array.hpp
+            Cuda/containers/device_array_impl.hpp
+            Cuda/containers/device_memory.hpp
+            Cuda/containers/device_memory_impl.hpp
+            Cuda/containers/kernel_containers.hpp
+    PRIVATE
+        FILE_SET private_headers
+        TYPE HEADERS
+        FILES
+            Cuda/containers/initialization.hpp
+            Cuda/containers/safe_call.hpp
+)
 target_link_libraries(icpcuda
     PUBLIC
         Eigen3::Eigen
@@ -35,6 +54,7 @@ target_include_directories(icpcuda PUBLIC
 )
 install(TARGETS icpcuda
     EXPORT icpcudaTargets
+    FILE_SET public_headers
 )
 
 add_executable(ICP ICP.cpp)
