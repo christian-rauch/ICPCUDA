@@ -41,8 +41,19 @@ add_executable(ICP ICP.cpp)
 target_link_libraries(ICP icpcuda opencv_core opencv_imgcodecs CUDA::cudart)
 install(TARGETS ICP)
 
+include(CMakePackageConfigHelpers)
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Config.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/icpcudaConfig.cmake"
+  INSTALL_DESTINATION share/${PROJECT_NAME}/cmake
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/icpcudaConfig.cmake"
+    DESTINATION share/${PROJECT_NAME}/cmake
+)
+
 install(EXPORT icpcudaTargets
     NAMESPACE ${PROJECT_NAME}::
     DESTINATION share/${PROJECT_NAME}/cmake
-    FILE ${PROJECT_NAME}Config.cmake
+    FILE ${PROJECT_NAME}Targets.cmake
 )
