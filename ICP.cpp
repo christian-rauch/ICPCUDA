@@ -152,7 +152,10 @@ int main(int argc, char *argv[]) {
 
       float counter = 0;
 
-      for (threads = 16; threads <= 512; threads += 16) {
+      const int maxThreadsPerBlock = prop.maxThreadsPerBlock;
+      const int maxBlocks = 512;
+
+      for (threads = 16; threads <= maxThreadsPerBlock; threads += 16) {
         for (blocks = 16; blocks <= 512; blocks += 16) {
           mean = 0.0f;
           count = 0;
@@ -188,7 +191,7 @@ int main(int argc, char *argv[]) {
 
           std::cout << "\rBest: " << bestThreads << " threads, " << bestBlocks
                     << " blocks (" << best << "ms), "
-                    << int((counter / 1024.f) * 100.f) << "%    ";
+                    << int((counter / (maxThreadsPerBlock/16 * maxBlocks/16)) * 100.f) << "%    ";
           std::cout.flush();
         }
       }
