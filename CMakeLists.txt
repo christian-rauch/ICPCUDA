@@ -27,6 +27,7 @@ target_link_libraries(icpcuda
     PRIVATE
         Sophus::Sophus
 )
+set_target_properties(icpcuda PROPERTIES CUDA_ARCHITECTURES OFF)
 include(GNUInstallDirs)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
