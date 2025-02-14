@@ -41,8 +41,6 @@
 #include "containers/device_array.hpp"
 
 #include <Eigen/Eigen>
-#include <cuda_runtime_api.h>
-#include <vector_types.h>
 
 #define MAX_THREADS 1024
 

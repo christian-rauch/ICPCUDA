@@ -23,9 +23,9 @@ add_library(icpcuda SHARED
 )
 target_link_libraries(icpcuda
     PUBLIC
-        CUDA::cudart Eigen3::Eigen
+        Eigen3::Eigen
     PRIVATE
-        Sophus::Sophus
+        CUDA::cudart Sophus::Sophus
 )
 set_target_properties(icpcuda PROPERTIES CUDA_ARCHITECTURES OFF)
 include(GNUInstallDirs)
@@ -42,7 +42,7 @@ install(TARGETS icpcuda
 )
 
 add_executable(ICP ICP.cpp)
-target_link_libraries(ICP icpcuda opencv_core opencv_imgcodecs)
+target_link_libraries(ICP icpcuda opencv_core opencv_imgcodecs CUDA::cudart)
 install(TARGETS ICP)
 
 install(EXPORT icpcudaTargets
