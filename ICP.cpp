@@ -6,6 +6,7 @@
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <cuda_runtime_api.h>
 
 std::ifstream asFile;
 std::string directory;
