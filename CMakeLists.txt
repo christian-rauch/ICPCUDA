@@ -9,6 +9,7 @@ enable_language(CUDA)
 
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(Sophus REQUIRED NO_MODULE)
+find_package(glog REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgcodecs)
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}  "-Xcompiler;-fPIC;--expt-relaxed-constexpr")
