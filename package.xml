@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>icpcuda</name>
+  <version>0.0.0</version>
+  <description>TODO: Package description</description>
+  <maintainer email="Christian.Rauch@unileoben.ac.at">Christian Rauch</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <depend>Eigen3</depend>
+  <depend>Sophus</depend>
+  <depend>OpenCV</depend>
+  <depend>Vulkan</depend>
+
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>
