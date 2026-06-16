@@ -1,0 +1,61 @@
+#version 450
+#extension GL_EXT_shader_16bit_storage : enable
+
+layout(local_size_x = 32, local_size_y = 8) in;
+
+layout(std430, binding = 0) readonly buffer SrcBuffer {
+    uint16_t src[];
+};
+
+layout(std430, binding = 1) writeonly buffer DstBuffer {
+    uint16_t dst[];
+};
+
+layout(push_constant) uniform PushConstants {
+    uint src_step;
+    uint dst_step;
+    uint src_cols;
+    uint src_rows;
+    uint dst_cols;
+    uint dst_rows;
+    float sigma_color;
+};
+
+void main() {
+    uint x = gl_GlobalInvocationID.x;
+    uint y = gl_GlobalInvocationID.y;
+
+    if (x >= dst_cols || y >= dst_rows)
+        return;
+
+    const int D = 5;
+    uint src_center_idx = 2 * y * src_step + 2 * x;
+    int center = int(uint(src[src_center_idx]));
+
+    int x_mi = max(0, int(2 * x) - D / 2) - int(2 * x);
+    int y_mi = max(0, int(2 * y) - D / 2) - int(2 * y);
+
+    int x_ma = min(int(src_cols), int(2 * x) - D / 2 + D) - int(2 * x);
+    int y_ma = min(int(src_rows), int(2 * y) - D / 2 + D) - int(2 * y);
+
+    float sum = 0.0;
+    float wall = 0.0;
+
+    float weights[3] = float[](0.375, 0.25, 0.0625);
+
+    for (int yi = y_mi; yi < y_ma; ++yi) {
+        for (int xi = x_mi; xi < x_ma; ++xi) {
+            uint src_idx = uint(int(2 * y + yi) * int(src_step) + int(2 * x + xi));
+            int val = int(uint(src[src_idx]));
+
+            if (abs(val - center) < 3.0 * sigma_color) {
+                float w = weights[abs(xi)] * weights[abs(yi)];
+                sum += float(val) * w;
+                wall += w;
+            }
+        }
+    }
+
+    uint dst_idx = y * dst_step + x;
+    dst[dst_idx] = uint16_t(uint(int(sum / wall)));
+}

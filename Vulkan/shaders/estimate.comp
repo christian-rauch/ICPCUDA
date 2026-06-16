@@ -1,0 +1,152 @@
+#version 450
+
+layout(local_size_x_id = 0) in;
+
+layout(std430, binding = 0) readonly buffer VMapCurrBuffer {
+    float vmap_curr[];
+};
+
+layout(std430, binding = 1) readonly buffer NMapCurrBuffer {
+    float nmap_curr[];
+};
+
+layout(std430, binding = 2) readonly buffer VMapPrevBuffer {
+    float vmap_prev[];
+};
+
+layout(std430, binding = 3) readonly buffer NMapPrevBuffer {
+    float nmap_prev[];
+};
+
+layout(std430, binding = 4) writeonly buffer SumBuffer {
+    float outData[];
+};
+
+layout(push_constant) uniform PushConstants {
+    mat3 R_prev_curr;
+    vec3 t_prev_curr;
+    float fx;
+    float fy;
+    float cx;
+    float cy;
+    float dist_thresh;
+    float angle_thresh;
+    uint cols;
+    uint rows;
+    uint N;
+    uint vmap_curr_step;
+    uint nmap_curr_step;
+    uint vmap_prev_step;
+    uint nmap_prev_step;
+};
+
+shared float sharedMem[29 * 256];
+
+void main() {
+    uint tid = gl_LocalInvocationID.x;
+    uint grid_size = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
+    uint start_idx = gl_WorkGroupID.x * gl_WorkGroupSize.x + tid;
+
+    float sum[29];
+    for (int k = 0; k < 29; ++k) {
+        sum[k] = 0.0;
+    }
+
+    for (uint i = start_idx; i < N; i += grid_size) {
+        uint y = i / cols;
+        uint x = i - (y * cols);
+
+        uint v_curr_idx0 = y * vmap_curr_step + x;
+        uint v_curr_idx1 = (y + rows) * vmap_curr_step + x;
+        uint v_curr_idx2 = (y + 2 * rows) * vmap_curr_step + x;
+        vec3 v_curr = vec3(vmap_curr[v_curr_idx0], vmap_curr[v_curr_idx1], vmap_curr[v_curr_idx2]);
+
+        vec3 v_curr_in_prev = R_prev_curr * v_curr + t_prev_curr;
+
+        int p_curr_in_prev_x = int(round(v_curr_in_prev.x * fx / v_curr_in_prev.z + cx));
+        int p_curr_in_prev_y = int(round(v_curr_in_prev.y * fy / v_curr_in_prev.z + cy));
+
+        if (p_curr_in_prev_x >= 0 && p_curr_in_prev_y >= 0 &&
+            p_curr_in_prev_x < int(cols) && p_curr_in_prev_y < int(rows) &&
+            v_curr.z > 0.0 && v_curr_in_prev.z > 0.0) {
+
+            uint p_x = uint(p_curr_in_prev_x);
+            uint p_y = uint(p_curr_in_prev_y);
+
+            uint v_prev_idx0 = p_y * vmap_prev_step + p_x;
+            uint v_prev_idx1 = (p_y + rows) * vmap_prev_step + p_x;
+            uint v_prev_idx2 = (p_y + 2 * rows) * vmap_prev_step + p_x;
+            vec3 v_prev = vec3(vmap_prev[v_prev_idx0], vmap_prev[v_prev_idx1], vmap_prev[v_prev_idx2]);
+
+            uint n_curr_idx0 = y * nmap_curr_step + x;
+            uint n_curr_idx1 = (y + rows) * nmap_curr_step + x;
+            uint n_curr_idx2 = (y + 2 * rows) * nmap_curr_step + x;
+            vec3 n_curr = vec3(nmap_curr[n_curr_idx0], nmap_curr[n_curr_idx1], nmap_curr[n_curr_idx2]);
+
+            vec3 n_curr_in_prev = R_prev_curr * n_curr;
+
+            uint n_prev_idx0 = p_y * nmap_prev_step + p_x;
+            uint n_prev_idx1 = (p_y + rows) * nmap_prev_step + p_x;
+            uint n_prev_idx2 = (p_y + 2 * rows) * nmap_prev_step + p_x;
+            vec3 n_prev = vec3(nmap_prev[n_prev_idx0], nmap_prev[n_prev_idx1], nmap_prev[n_prev_idx2]);
+
+            if (length(cross(n_curr_in_prev, n_prev)) < angle_thresh &&
+                length(v_prev - v_curr_in_prev) < dist_thresh &&
+                !isnan(n_curr.x) && !isnan(n_prev.x)) {
+
+                float row[7];
+                row[0] = n_prev.x;
+                row[1] = n_prev.y;
+                row[2] = n_prev.z;
+                vec3 cross_prod = cross(v_curr_in_prev, n_prev);
+                row[3] = cross_prod.x;
+                row[4] = cross_prod.y;
+                row[5] = cross_prod.z;
+                row[6] = dot(n_prev, v_prev - v_curr_in_prev);
+
+                float values[29];
+                int shift = 0;
+                for (int ii = 0; ii < 7; ++ii) {
+                    for (int jj = ii; jj < 7; ++jj) {
+                        values[shift++] = row[ii] * row[jj];
+                    }
+                }
+                values[28] = 1.0;
+
+                for (int k = 0; k < 29; ++k) {
+                    sum[k] += values[k];
+                }
+            }
+        }
+    }
+
+    // Write to shared memory for parallel workgroup reduction
+    // Clamp workgroup size index to prevent out of bounds if specialization constant is larger than 256
+    uint clamped_tid = min(tid, 255u);
+    for (int j = 0; j < 29; ++j) {
+        sharedMem[clamped_tid * 29 + j] = sum[j];
+    }
+    barrier();
+
+    uint active_threads = min(gl_WorkGroupSize.x, 256u);
+
+    for (uint stride = 1; stride < active_threads; stride *= 2) {
+        uint index = 2 * stride * clamped_tid;
+        if (index < active_threads) {
+            uint next = index + stride;
+            if (next < active_threads) {
+                for (int j = 0; j < 29; ++j) {
+                    sharedMem[index * 29 + j] += sharedMem[next * 29 + j];
+                }
+            }
+        }
+        barrier();
+    }
+
+    if (clamped_tid == 0) {
+        uint block_offset = gl_WorkGroupID.x * 29;
+        for (int j = 0; j < 29; ++j) {
+            outData[block_offset + j] = sharedMem[j];
+        }
+    }
+}

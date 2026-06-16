@@ -1,0 +1,54 @@
+#version 450
+#extension GL_EXT_shader_16bit_storage : enable
+
+layout(local_size_x = 32, local_size_y = 8) in;
+
+layout(std430, binding = 0) readonly buffer DepthBuffer {
+    uint16_t depth[];
+};
+
+layout(std430, binding = 1) writeonly buffer VMapBuffer {
+    float vmap[];
+};
+
+layout(push_constant) uniform PushConstants {
+    float fx;
+    float fy;
+    float cx;
+    float cy;
+    uint depth_step; // in uint16_t elements
+    uint vmap_step;  // in float elements
+    uint cols;
+    uint rows;
+    float depthCutoff;
+};
+
+void main() {
+    uint u = gl_GlobalInvocationID.x;
+    uint v = gl_GlobalInvocationID.y;
+
+    if (u >= cols || v >= rows)
+        return;
+
+    uint depth_idx = v * depth_step + u;
+    float z = float(uint(depth[depth_idx])) / 1000.0;
+
+    uint v_idx0 = v * vmap_step + u;
+    uint v_idx1 = (v + rows) * vmap_step + u;
+    uint v_idx2 = (v + 2 * rows) * vmap_step + u;
+
+    if (z != 0.0 && z < depthCutoff) {
+        float vx = z * (float(u) - cx) / fx;
+        float vy = z * (float(v) - cy) / fy;
+        float vz = z;
+
+        vmap[v_idx0] = vx;
+        vmap[v_idx1] = vy;
+        vmap[v_idx2] = vz;
+    } else {
+        float nan_val = uintBitsToFloat(0x7fffffffu);
+        vmap[v_idx0] = nan_val;
+        vmap[v_idx1] = nan_val;
+        vmap[v_idx2] = nan_val;
+    }
+}

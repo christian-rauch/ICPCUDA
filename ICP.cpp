@@ -6,7 +6,7 @@
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
-#include <cuda_runtime_api.h>
+#include "Vulkan/VulkanContext.h"
 
 std::ifstream asFile;
 std::string directory;
@@ -121,11 +121,7 @@ int main(int argc, char *argv[]) {
   file.open("output.poses", std::fstream::out);
   file.close();
 
-  cudaDeviceProp prop;
-
-  cudaGetDeviceProperties(&prop, 0);
-
-  std::string dev(prop.name);
+  std::string dev = VulkanContext::getInstance().getDeviceName();
 
   std::cout << dev << std::endl;
 
@@ -152,7 +148,7 @@ int main(int argc, char *argv[]) {
 
       float counter = 0;
 
-      const int maxThreadsPerBlock = prop.maxThreadsPerBlock;
+      const int maxThreadsPerBlock = 256;
       const int maxBlocks = 512;
 
       for (threads = 16; threads <= maxThreadsPerBlock; threads += 16) {

@@ -8,7 +8,7 @@
 #ifndef ICPODOMETRY_H_
 #define ICPODOMETRY_H_
 
-#include "Cuda/internal.h"
+#include "Vulkan/internal.h"
 
 #include <vector>
 

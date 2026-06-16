@@ -1,0 +1,66 @@
+#version 450
+
+layout(local_size_x = 32, local_size_y = 8) in;
+
+layout(std430, binding = 0) readonly buffer VMapBuffer {
+    float vmap[];
+};
+
+layout(std430, binding = 1) writeonly buffer NMapBuffer {
+    float nmap[];
+};
+
+layout(push_constant) uniform PushConstants {
+    uint vmap_step;
+    uint nmap_step;
+    uint cols;
+    uint rows;
+};
+
+void main() {
+    uint u = gl_GlobalInvocationID.x;
+    uint v = gl_GlobalInvocationID.y;
+
+    if (u >= cols || v >= rows)
+        return;
+
+    uint n_idx0 = v * nmap_step + u;
+    uint n_idx1 = (v + rows) * nmap_step + u;
+    uint n_idx2 = (v + 2 * rows) * nmap_step + u;
+
+    float nan_val = uintBitsToFloat(0x7fffffffu);
+
+    if (u == cols - 1 || v == rows - 1) {
+        nmap[n_idx0] = nan_val;
+        nmap[n_idx1] = nan_val;
+        nmap[n_idx2] = nan_val;
+        return;
+    }
+
+    float v00_x = vmap[v * vmap_step + u];
+    float v01_x = vmap[v * vmap_step + u + 1];
+    float v10_x = vmap[(v + 1) * vmap_step + u];
+
+    if (!isnan(v00_x) && !isnan(v01_x) && !isnan(v10_x)) {
+        vec3 v00 = vec3(v00_x, vmap[(v + rows) * vmap_step + u], vmap[(v + 2 * rows) * vmap_step + u]);
+        vec3 v01 = vec3(v01_x, vmap[(v + rows) * vmap_step + u + 1], vmap[(v + 2 * rows) * vmap_step + u + 1]);
+        vec3 v10 = vec3(v10_x, vmap[(v + 1 + rows) * vmap_step + u], vmap[(v + 1 + 2 * rows) * vmap_step + u]);
+
+        vec3 r = cross(v01 - v00, v10 - v00);
+        float r_len = length(r);
+        if (r_len > 0.0) {
+            r /= r_len;
+            nmap[n_idx0] = r.x;
+            nmap[n_idx1] = r.y;
+            nmap[n_idx2] = r.z;
+        } else {
+            nmap[n_idx0] = nan_val;
+            nmap[n_idx1] = nan_val;
+            nmap[n_idx2] = nan_val;
+        }
+    } else {
+        nmap[n_idx0] = nan_val;
+        nmap[n_idx1] = nan_val;
+        nmap[n_idx2] = nan_val;
+    }
+}

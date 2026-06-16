@@ -6,7 +6,6 @@
  */
 
 #include "ICPOdometry.h"
-#include <cuda_runtime_api.h>
 #include <sophus/se3.hpp>
 
 ICPOdometry::ICPOdometry(int width, int height, float cx, float cy, float fx,
@@ -60,7 +59,7 @@ void ICPOdometry::initICP(unsigned short *depth, const float depthCutoff) {
     createNMap(vmaps_curr[i], nmaps_curr[i]);
   }
 
-  cudaDeviceSynchronize();
+  // Synced by Vulkan commands internally
 }
 
 void ICPOdometry::initICPModel(unsigned short *depth, const float depthCutoff) {
@@ -75,7 +74,7 @@ void ICPOdometry::initICPModel(unsigned short *depth, const float depthCutoff) {
     createNMap(vmaps_prev[i], nmaps_prev[i]);
   }
 
-  cudaDeviceSynchronize();
+  // Synced by Vulkan commands internally
 }
 
 void ICPOdometry::getIncrementalTransformation(Eigen::Isometry3d &T_prev_curr,

@@ -1,0 +1,60 @@
+#version 450
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer SumBuffer {
+    float inData[];
+};
+
+layout(std430, binding = 1) writeonly buffer OutBuffer {
+    float outData[];
+};
+
+layout(push_constant) uniform PushConstants {
+    uint num_blocks;
+};
+
+shared float sharedMem[256 * 29];
+
+void main() {
+    uint tid = gl_LocalInvocationID.x;
+
+    float sum[29];
+    for (int k = 0; k < 29; ++k) {
+        sum[k] = 0.0;
+    }
+
+    for (uint i = tid; i < num_blocks; i += gl_WorkGroupSize.x) {
+        uint offset = i * 29;
+        for (int k = 0; k < 29; ++k) {
+            sum[k] += inData[offset + k];
+        }
+    }
+
+    // Write to shared memory
+    for (int k = 0; k < 29; ++k) {
+        sharedMem[tid * 29 + k] = sum[k];
+    }
+    barrier();
+
+    // Workgroup reduction
+    for (uint stride = 1; stride < gl_WorkGroupSize.x; stride *= 2) {
+        uint index = 2 * stride * tid;
+        if (index < gl_WorkGroupSize.x) {
+            uint next = index + stride;
+            if (next < gl_WorkGroupSize.x) {
+                for (int k = 0; k < 29; ++k) {
+                    sharedMem[index * 29 + k] += sharedMem[next * 29 + k];
+                }
+            }
+        }
+        barrier();
+    }
+
+    // Write final output
+    if (tid == 0) {
+        for (int k = 0; k < 29; ++k) {
+            outData[k] = sharedMem[k];
+        }
+    }
+}
